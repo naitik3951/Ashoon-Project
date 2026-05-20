@@ -11,7 +11,7 @@ enemy = {
     'enemy_hp' : 10000,
     'enemy_defence' : 50,
     'enemy_attack' : 20,
-    'enemy_spd' : 2
+    'enemy_spd' : 2.1
 }
 
 weapon = {
@@ -52,14 +52,13 @@ def fight():
             enemy_health = enemy_health - player_damage
             print('Player did attack')
             player_distance = 10
-            enemy_distance = enemy_distance - enemy_av * enemy['enemy_spd']
-
+            enemy_distance = enemy_distance - player_av * enemy['enemy_spd'] #Player av cus av = time bassicly and time elapsed is calculated for player only at htis moment
 
         elif enemy_av < player_av : #Enemy moves
             player_health = player_health - enemy_damage
             print('Enemy did attack')       
             enemy_distance = 10
-            player_distance = player_distance - player_av * stats['player_spd']
+            player_distance = player_distance - enemy_av * stats['player_spd'] #Same as above
 
         elif enemy_av == player_av : #Both act
             enemy_health = enemy_health - player_damage
