@@ -16,10 +16,12 @@ enemy = {
 
 weapon = {
     'name' : 'scythe',
-    'weapon_attack' : 100,
+    'weapon_attack_min' : 50,
+    'weapon_attack_max' : 100,
     'crit_rate' : 50,
     'crit_damage' : 100,
 }
+
 
 def fight():
     #Defining few stuff for battle(later load from file directly i think)
@@ -31,7 +33,7 @@ def fight():
 
     fighting = True
     while fighting:
-        player_damage = (stats['player_attack'] + weapon['weapon_attack'])*2 - (enemy['enemy_defence']) #Change to Lx/x+d form later ig
+        player_damage = (stats['player_attack'] + random.randint(weapon['weapon_attack_min'], weapon['weapon_attack_max']))*2 - (enemy['enemy_defence']) #Change to Lx/x+d form later ig
         if player_damage<0: #Temporary
             player_damage = 0
 
@@ -51,12 +53,16 @@ def fight():
 
             enemy_health = enemy_health - player_damage
             print('Player did attack')
+            print("Player damage : ", player_damage)
+            print()
             player_distance = 10
             enemy_distance = enemy_distance - player_av * enemy['enemy_spd'] #Player av cus av = time bassicly and time elapsed is calculated for player only at htis moment
 
         elif enemy_av < player_av : #Enemy moves
             player_health = player_health - enemy_damage
             print('Enemy did attack')       
+            print('Enemy damage : ', enemy_damage)
+            print()
             enemy_distance = 10
             player_distance = player_distance - enemy_av * stats['player_spd'] #Same as above
 
@@ -64,9 +70,13 @@ def fight():
             enemy_health = enemy_health - player_damage
             player_av = 10
             print('Player did attack')
+            print('Player damage : ', player_damage)
+            print()
             player_health = player_health - enemy_damage
             enemy_av = 10
             print('Enemy did attack')    
+            print('Enemy damage', enemy_damage)
+            print()
             player_distance = 10
             enemy_distance = 10
 
