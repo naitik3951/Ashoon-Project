@@ -71,8 +71,8 @@ def pturn(progress, status):
                 
     pmove = playeradata['moves'][move_select]
 
-    pdmgbase = playeradata[move_select]
-    pdmg = pdmgbase* (playeradata["attack"]*status["player"]["attack"])/((playeradata["attack"]*status["player"]["attack"]) - enemydata["defence"]*status["enemy"]["defence"])
+    pdmgbase = playeradata[move_select]["damage"]
+    pdmg = pdmgbase* (playeradata["attack"]*status["player"]["attack"])/((playeradata["attack"]*status["player"]["attack"]) + enemydata["defence"]*status["enemy"]["defence"])
 
     #Adding selfbuffs
     for i in pmove["selfbuff"]:
@@ -88,9 +88,22 @@ def pturn(progress, status):
             status["player"]["speed"][buff_name] = [multiplier, duration] 
         elif buff_data[-1] == "defence" :
             status["player"]["defence"][buff_name] = [multiplier, duration] 
-
+        
     #Code status decreasing here
+    expired = []
+    for buff_type in status["player"]:
+        for buff_name in status["player"][buff_type]:
+            buff_data = status["player"][buff_type][buff_name]
+            if buff_data[-1]>0:
+                buff_data[-1] -= 1
+            else:
+                expired.append([buff_type, buff_name])
 
+
+    #Delete seperately cus deleting together was annyoing
+    for to_delete in expired:
+        del status["player"][to_delete[0]][to_delete[1]]
+    
 
 def fight():
     pdist = 10000
