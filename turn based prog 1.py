@@ -50,15 +50,63 @@ playeradata = {
 }
 
 enemydata = {
-    "speed" : 100,
-    "health" : 10000,
-    "defence" : 1000,
-    "moves" : {
-        "move1" : 100,
-        "move2" : 50,
-        "move3" : 75
+    "speed": 100,
+    "health": 10000,
+    "defence": 1000,
+
+    "moves": {
+        "crushing_blow": {
+            "damage": 180,
+            "selfbuff": {},
+            "debuff": 1
+        },
+
+        "war_cry": {
+            "damage": 50,
+            "selfbuff": {
+                "fury": [1.3, 3, "attack"]
+            },
+            "debuff": 1
+        },
+
+        "crippling_hex": {
+            "damage": 40,
+            "selfbuff": {},
+            "debuff": 0.8
+        },
+
+        "frenzy": {
+            "damage": 120,
+            "selfbuff": {
+                "frenzy": [1.2, 2, "speed"],
+                "bloodlust": [1.15, 2, "attack"]
+            },
+            "debuff": 1
+        },
+
+        "battle_shout": {
+            "damage": 70,
+            "selfbuff": {
+                "battle_hardened": [1.2, 4, "defence"]
+            },
+            "debuff": 1
+        }
     }
 }
+
+def speed_sys(progress):
+    pav = progress["player"]["pdist"] / playeradata["speed"]
+    eav = progress["enemy"]["edist"] / enemydata["speed"]
+
+    if pav<eav:
+        next_turn = "p"
+    elif eav<pav:
+        next_turn = "e"
+    else:
+        next_turn = random.choice(["p", "e"])
+
+    return next_turn, pav, eav
+    
 
 def pturn(progress, status):
     print("Moves available : ", playeradata['moves']) # Could print htis better 
@@ -71,8 +119,9 @@ def pturn(progress, status):
                 
     pmove = playeradata['moves'][move_select]
 
-    pdmgbase = playeradata[move_select]["damage"]
-    pdmg = pdmgbase* (playeradata["attack"]*status["player"]["attack"])/((playeradata["attack"]*status["player"]["attack"]) + enemydata["defence"]*status["enemy"]["defence"])
+    pdmg_base = pmove["damage"]
+    #Haev to add including buffs
+    pdmg = pdmg_base* (playeradata["attack"])/((playeradata["attack"]) + enemydata["defence"])
 
     #Adding selfbuffs
     for i in pmove["selfbuff"]:
@@ -99,22 +148,56 @@ def pturn(progress, status):
             else:
                 expired.append([buff_type, buff_name])
 
-
     #Delete seperately cus deleting together was annyoing
     for to_delete in expired:
         del status["player"][to_delete[0]][to_delete[1]]
-    
+
+    progress["enemy"]["ehealth"] -= pdmg
+    av = 10000/playeradata["speed"] #Temp fix, diff function later where buffs will also be calced
+    progress["player"]["pdist"] = 10000
+    progress["enemy"]["edist"] = 10000 - enemydata["speed"]*av
+
+def eturn(progress, status):
+    echoice = random.choice(list(enemydata["moves"].keys()))
+    emove = enemydata["moves"][echoice]
+
+    edmg_base = emove["damage"]
+    edmg = edmg_base #Prob improve this 
+
+    for i in emove["selfbuff"]:
+        buff_data = emove["selfbuff"][i]
+        buff_name = i
+
+        multiplier = buff_data[0]
+        duration = buff_data[1]
+
+        if buff_data[-1] == "attack":
+            status["enemy"]["attack"][buff_name] = [multiplier, duration]  
+        elif buff_data[-1] == "speed":
+            status["enemy"]["speed"][buff_name] = [multiplier, duration] 
+        elif buff_data[-1] == "defence" :
+            status["enemy"]["defence"][buff_name] = [multiplier, duration]     
+
+    #Status decreasing
+    expired = []
+    for buff_type in status["enemy"]:
+        for buff_name in status["enemy"][buff_type]:
+            buff_data = status["enemy"][buff_type][buff_name]
+            if buff_data[-1]>0:
+                buff_data[-1] -= 1
+            else:
+                expired.append([buff_type, buff_name])
+
+    #Delete seperately cus deleting together was annyoing
+    for to_delete in expired:
+        del status["enemy"][to_delete[0]][to_delete[1]]
+
+    progress["player"]["phealth"] -= edmg
+    av = 10000/enemydata["speed"]#Temp fix, diff function lated where buffs also calced
+    progress["enemy"]["edist"] = 10000
+    progress["player"]["pdist"] -= playeradata["speed"]*av
 
 def fight():
-    pdist = 10000
-    pbuffs = 1 #For final dmg
-    pdebuff = 0 #Not defining enemy rn
-
-    edist = 10000
-    ebuffs = 1 #Not defining rn
-    edebuff = 1
-    edot = 0
-
     progress = {
         "player" : {
             "pdist" : 10000,
@@ -140,63 +223,25 @@ def fight():
         }
     }
 
-    phealth = playeradata['health']
-    ehealth = enemydata['health']
-
-
     while True:
-        pav = pdist / playeradata['speed']
-        eav = edist / enemydata['speed']
+        next_turn = speed_sys(progress)
 
+        if next_turn == "p":
+            pturn(progress, status)
+        elif next_turn == "e":
+            eturn(progress, status)
+        else:
+            print("Some error occured")
 
-
-        if pav < eav:
-            print("Moves available : ", playeradata['moves']) # Could print htis better 
-            move_select = str(input("Enter name of move selected : "))
-
-            #Correct move entered
-            while move_select not in playeradata['moves']:
-                print("Move selected not in move list, reselect")
-                move_select = str(input("Enter name of move selected : "))
-                    
-
-            pmove = playeradata['moves'][move_select]
-
-            #Player appling buffs, debuffs, selfbuffs, dot
-            pdmg_base = pmove["damage"]
-            pdmg = (playeradata["attack"]*pbuffs) * pdmg_base /((playeradata["attack"]*pbuffs) + enemydata["defence"]*edebuff) #Improve this later
-
-            pbuffs *= pmove["selfbuff"] # For pattack
-
-            edebuff *= pmove["debuff"] # For edefence
-
-            edot +=pmove["dot"] # Have to add dot countdown
-
-            ehealth = ehealth - pdmg - edot
-            pdist = 10000
-            edist = edist - eav * enemydata['speed']
-
-        elif eav < pav:
-            print("Enemy moved!")
-            choices = list(enemydata['moves'])
-            move_select = random.choice(choices)
-            emove = enemydata['moves'][move_select]
-
-            phealth = phealth - emove
-            edist = 10000
-            pdist = pdist - pav * playeradata['speed']
-
-  
-
-        if phealth < 0 :
+        if progress["player"]["phealth"] <= 0 :
             print("You died")
             break
-        elif ehealth < 0 :
+        elif progress["enemy"]["ehealth"] <= 0 :
             print("You won")
             break
         else:
-            print("Your health : ", phealth)
-            print("Enemy health : ", ehealth) 
+            print("Your health : ", progress["player"]["phealth"])
+            print("Enemy health : ", progress["enemy"]["ehealth"]) 
         print()
 
 fight() 
