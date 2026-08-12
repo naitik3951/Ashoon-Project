@@ -1,9 +1,11 @@
 import random
 
+
 playeradata = {
     "speed" : 135,
     "health" : 6700,
     "attack" : 350,
+    "defence" : 1000,
     #Selfbuff and debuff are multiplicative so if no selfbuff / debuff then put
     #Self buff = final attack (prob too op), debuff = enemy def
     #Dot is amnt of dmg per enemy turn so put 0 if no dot
@@ -52,6 +54,7 @@ playeradata = {
 enemydata = {
     "speed": 100,
     "health": 10000,
+    "attack" : 1000,
     "defence": 1000,
 
     "moves": {
@@ -94,55 +97,81 @@ enemydata = {
     }
 }
 
-def speed_sys(progress):
-    pav = progress["player"]["pdist"] / playeradata["speed"]
-    eav = progress["enemy"]["edist"] / enemydata["speed"]
+def speed_sys(progress, status):
+    pav = progress["player"]["pdist"] / (playeradata["speed"]*status["multipliers"]["player"]["speed"])
+    eav = progress["enemy"]["edist"] / (enemydata["speed"]*status["multipliers"]["enemy"]["speed"])
 
     if pav<eav:
-        next_turn = "p"
+        next_turn = "player"
     elif eav<pav:
-        next_turn = "e"
+        next_turn = "enemy"
     else:
-        next_turn = random.choice(["p", "e"])
+        next_turn = random.choice(["player", "enemy"])
 
-    return next_turn, pav, eav
+    return next_turn
+
+def buff_calculations(next_turn, status):
+        for buff_type in status[next_turn]:
+            status["multipliers"][next_turn][buff_type] = 1
+            for buff_name in status[next_turn][buff_type]:
+                multiplier = status[next_turn][buff_type][buff_name][0]
+                status["multipliers"][next_turn][buff_type] *= multiplier
+
+def damage_calculation(next_turn, move, status):
+    if next_turn == "player":
+        return( move["damage"] * ((playeradata["attack"]) * (status["multipliers"][next_turn]["attack"])) / (((playeradata["attack"]) * (status["multipliers"][next_turn]["attack"])) + (enemydata["defence"]*status["multipliers"]["enemy"]["defence"])) )
+
+    elif next_turn == "enemy":
+        return( move["damage"] * ((enemydata["attack"]) * (status["multipliers"][next_turn]["attack"])) / (((enemydata["attack"]) * (status["multipliers"][next_turn]["attack"])) + (playeradata["defence"]*status["multipliers"]["player"]["defence"])) )  
+
+    else:
+        print("Some error occured")
+        return
     
-
-def pturn(progress, status):
-    print("Moves available : ", playeradata['moves']) # Could print htis better 
-    move_select = str(input("Enter name of move selected : "))
-
-    #Correct move entered
-    while move_select not in playeradata['moves']:
-        print("Move selected not in move list, reselect")
+def turn(next_turn, progress, status):
+    if next_turn == "player":
+        print("Moves available : ", playeradata['moves']) # Could print htis better 
         move_select = str(input("Enter name of move selected : "))
-                
-    pmove = playeradata['moves'][move_select]
 
-    pdmg_base = pmove["damage"]
-    #Haev to add including buffs
-    pdmg = pdmg_base* (playeradata["attack"])/((playeradata["attack"]) + enemydata["defence"])
+        #Correct move entered
+        while move_select not in playeradata['moves']:
+            print("Move selected not in move list, reselect")
+            move_select = str(input("Enter name of move selected : "))
+                    
+        move = playeradata['moves'][move_select]
+
+        dmg = damage_calculation(next_turn, move, status)
+
+    elif next_turn == "enemy":
+        echoice = random.choice(list(enemydata["moves"].keys()))
+        move = enemydata["moves"][echoice]
+
+        dmg = damage_calculation(next_turn, move, status)
+
+    else:
+        print("Some error occured")
+        return
 
     #Adding selfbuffs
-    for i in pmove["selfbuff"]:
-        buff_data = pmove["selfbuff"][i]
+    for i in move["selfbuff"]:
+        buff_data = move["selfbuff"][i]
         buff_name = i
 
         multiplier = buff_data[0]
         duration = buff_data[1]
 
         if buff_data[-1] == "attack":
-            status["player"]["attack"][buff_name] = [multiplier, duration]  
+            status[next_turn]["attack"][buff_name] = [multiplier, duration]  
         elif buff_data[-1] == "speed":
-            status["player"]["speed"][buff_name] = [multiplier, duration] 
+            status[next_turn]["speed"][buff_name] = [multiplier, duration] 
         elif buff_data[-1] == "defence" :
-            status["player"]["defence"][buff_name] = [multiplier, duration] 
+            status[next_turn]["defence"][buff_name] = [multiplier, duration] 
         
     #Code status decreasing here
     expired = []
-    for buff_type in status["player"]:
-        for buff_name in status["player"][buff_type]:
-            buff_data = status["player"][buff_type][buff_name]
+    for buff_type in status[next_turn]:
+        for buff_name in status[next_turn][buff_type]:
+            buff_data = status[next_turn][buff_type][buff_name]
             if buff_data[-1]>0:
                 buff_data[-1] -= 1
             else:
@@ -150,53 +179,24 @@ def pturn(progress, status):
 
     #Delete seperately cus deleting together was annyoing
     for to_delete in expired:
-        del status["player"][to_delete[0]][to_delete[1]]
+        del status[next_turn][to_delete[0]][to_delete[1]]
 
-    progress["enemy"]["ehealth"] -= pdmg
-    av = 10000/playeradata["speed"] #Temp fix, diff function later where buffs will also be calced
-    progress["player"]["pdist"] = 10000
-    progress["enemy"]["edist"] = 10000 - enemydata["speed"]*av
+    if next_turn == "player":
+        print("You moved!")
+        print()
+        progress["enemy"]["ehealth"] -= dmg
+        av = 10000/playeradata["speed"] #Temp fix, diff function later where buffs will also be calced
+        progress["player"]["pdist"] = 10000
+        progress["enemy"]["edist"] = 10000 - enemydata["speed"]*av
 
-def eturn(progress, status):
-    echoice = random.choice(list(enemydata["moves"].keys()))
-    emove = enemydata["moves"][echoice]
-
-    edmg_base = emove["damage"]
-    edmg = edmg_base #Prob improve this 
-
-    for i in emove["selfbuff"]:
-        buff_data = emove["selfbuff"][i]
-        buff_name = i
-
-        multiplier = buff_data[0]
-        duration = buff_data[1]
-
-        if buff_data[-1] == "attack":
-            status["enemy"]["attack"][buff_name] = [multiplier, duration]  
-        elif buff_data[-1] == "speed":
-            status["enemy"]["speed"][buff_name] = [multiplier, duration] 
-        elif buff_data[-1] == "defence" :
-            status["enemy"]["defence"][buff_name] = [multiplier, duration]     
-
-    #Status decreasing
-    expired = []
-    for buff_type in status["enemy"]:
-        for buff_name in status["enemy"][buff_type]:
-            buff_data = status["enemy"][buff_type][buff_name]
-            if buff_data[-1]>0:
-                buff_data[-1] -= 1
-            else:
-                expired.append([buff_type, buff_name])
-
-    #Delete seperately cus deleting together was annyoing
-    for to_delete in expired:
-        del status["enemy"][to_delete[0]][to_delete[1]]
-
-    progress["player"]["phealth"] -= edmg
-    av = 10000/enemydata["speed"]#Temp fix, diff function lated where buffs also calced
-    progress["enemy"]["edist"] = 10000
-    progress["player"]["pdist"] -= playeradata["speed"]*av
-
+    elif next_turn == "enemy":
+        print("Enemy moved!")
+        print()
+        progress["player"]["phealth"] -= dmg
+        av = 10000/enemydata["speed"]#Temp fix, diff function lated where buffs also calced
+        progress["enemy"]["edist"] = 10000
+        progress["player"]["pdist"] -= playeradata["speed"]*av
+   
 def fight():
     progress = {
         "player" : {
@@ -210,6 +210,20 @@ def fight():
     }
 
     status = {
+        #For actual game calcs
+        "multipliers" : {
+            "player" : {
+                "attack" : 1,
+                "speed" : 1,
+                "defence" : 1
+            },
+
+            "enemy" : {
+                "attack" : 1,
+                "speed" : 1,
+                "defence" : 1
+            }
+        },
         #format = buff name, multiplier, duration in list
         "player" : {
             "attack" : {},
@@ -224,14 +238,12 @@ def fight():
     }
 
     while True:
-        next_turn = speed_sys(progress)
+        buff_calculations("player", status)
+        buff_calculations("enemy", status)
 
-        if next_turn == "p":
-            pturn(progress, status)
-        elif next_turn == "e":
-            eturn(progress, status)
-        else:
-            print("Some error occured")
+        next_turn = speed_sys(progress,status)
+
+        turn(next_turn, progress, status)
 
         if progress["player"]["phealth"] <= 0 :
             print("You died")
@@ -243,5 +255,7 @@ def fight():
             print("Your health : ", progress["player"]["phealth"])
             print("Enemy health : ", progress["enemy"]["ehealth"]) 
         print()
+
+        print(status) #To see if its working
 
 fight() 
