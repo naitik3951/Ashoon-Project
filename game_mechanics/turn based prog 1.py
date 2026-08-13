@@ -162,11 +162,11 @@ def buff_duration(move, next_turn, status):
 
 
 def buff_calculations(next_turn, status):
-        for buff_type in status["buff"][next_turn]:
-            status["buff"]["multipliers"][next_turn][buff_type] = 1
-            for buff_name in status["buff"][next_turn][buff_type]:
-                multiplier = status["buff"][next_turn][buff_type][buff_name][0]
-                status["buff"]["multipliers"][next_turn][buff_type] *= multiplier
+    for buff_type in status["buff"][next_turn]:
+        status["buff"]["multipliers"][next_turn][buff_type] = 1
+        for buff_name in status["buff"][next_turn][buff_type]:
+            multiplier = status["buff"][next_turn][buff_type][buff_name][0]
+            status["buff"]["multipliers"][next_turn][buff_type] *= multiplier
 
 def debuff_duration(move, opponent, status):
     #Adding debuffs
@@ -198,8 +198,14 @@ def debuff_duration(move, opponent, status):
     for to_delete in expired:
         del status["debuff"][opponent][to_delete[0]][to_delete[1]]  
 
-def debuff_calculations():
+def debuff_calculations(opponent, status):
 #Similar to buff calculations
+    for buff_type in status["debuff"][opponent]:
+        status["debuff"]["multipliers"][opponent][buff_type] = 1
+        for buff_name in status["debuff"][opponent][buff_type]:
+            multiplier = status["debuff"][opponent][buff_type][buff_name][0]
+            status["debuff"]["multipliers"][opponent][buff_type] *= multiplier
+
 
 #Recode using debuff
 def damage_calculation(next_turn, move, status):
