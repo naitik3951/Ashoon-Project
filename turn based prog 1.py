@@ -1,6 +1,5 @@
 import random
 
-
 playeradata = {
     "speed" : 135,
     "health" : 6700,
@@ -127,7 +126,37 @@ def damage_calculation(next_turn, move, status):
     else:
         print("Some error occured")
         return
-    
+
+def buff_duration(move, next_turn, status):
+    #Adding selfbuffs
+    for i in move["selfbuff"]:
+        buff_data = move["selfbuff"][i]
+        buff_name = i
+
+        multiplier = buff_data[0]
+        duration = buff_data[1]
+
+        if buff_data[-1] == "attack":
+            status[next_turn]["attack"][buff_name] = [multiplier, duration + 1]  # +1 cus in next loop it removes 1 turn from the buff
+        elif buff_data[-1] == "speed":
+            status[next_turn]["speed"][buff_name] = [multiplier, duration + 1] 
+        elif buff_data[-1] == "defence" :
+            status[next_turn]["defence"][buff_name] = [multiplier, duration + 1] 
+
+    #Code status decreasing here
+    expired = []
+    for buff_type in status[next_turn]:
+        for buff_name in status[next_turn][buff_type]:
+            buff_data = status[next_turn][buff_type][buff_name]
+            if buff_data[-1]>0:
+                buff_data[-1] -= 1
+            else:
+                expired.append([buff_type, buff_name])
+
+    #Delete seperately cus deleting together was annyoing
+    for to_delete in expired:
+        del status[next_turn][to_delete[0]][to_delete[1]]
+
 def turn(next_turn, progress, status):
     if next_turn == "player":
         print("Moves available : ", playeradata['moves']) # Could print htis better 
@@ -152,35 +181,8 @@ def turn(next_turn, progress, status):
         print("Some error occured")
         return
 
-    #Adding selfbuffs
-    for i in move["selfbuff"]:
-        buff_data = move["selfbuff"][i]
-        buff_name = i
-
-        multiplier = buff_data[0]
-        duration = buff_data[1]
-
-        if buff_data[-1] == "attack":
-            status[next_turn]["attack"][buff_name] = [multiplier, duration]  
-        elif buff_data[-1] == "speed":
-            status[next_turn]["speed"][buff_name] = [multiplier, duration] 
-        elif buff_data[-1] == "defence" :
-            status[next_turn]["defence"][buff_name] = [multiplier, duration] 
-        
-    #Code status decreasing here
-    expired = []
-    for buff_type in status[next_turn]:
-        for buff_name in status[next_turn][buff_type]:
-            buff_data = status[next_turn][buff_type][buff_name]
-            if buff_data[-1]>0:
-                buff_data[-1] -= 1
-            else:
-                expired.append([buff_type, buff_name])
-
-    #Delete seperately cus deleting together was annyoing
-    for to_delete in expired:
-        del status[next_turn][to_delete[0]][to_delete[1]]
-
+    buff_duration(move, next_turn, status)
+    
     if next_turn == "player":
         print("You moved!")
         print()
