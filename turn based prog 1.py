@@ -1,6 +1,5 @@
 import random
 
-
 playeradata = {
     "speed" : 135,
     "health" : 6700,
