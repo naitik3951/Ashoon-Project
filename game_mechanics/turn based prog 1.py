@@ -1,66 +1,75 @@
 import random
 
 playeradata = {
-    "speed" : 135,
-    "health" : 6700,
-    "attack" : 350,
-    "defence" : 1000,
-    #Selfbuff and debuff are multiplicative so if no selfbuff / debuff then put
-    #Self buff = final attack (prob too op), debuff = enemy def
-    #Dot is amnt of dmg per enemy turn so put 0 if no dot
+    "speed": 135,
+    "health": 6700,
+    "attack": 350,
+    "defence": 1000,
 
-    #Buffs stored as name ; [multiplier, expiry, what it effects]
-    "moves" : {
-        "move1" : {
-        "damage" : 100,
-        "selfbuff" : {
-            "rage" : [1.25, 3, "attack"]
+    "moves": {
+        "move1": {
+            "damage": 100,
+            "selfbuff": {
+                "rage": [1.25, 3, "attack"]
             },
-        "debuff" : 0.9,
-        "dot" : 0
-        },
-
-        "move2" : {
-        "damage" : 50,
-        "selfbuff" : {
-            "haste" : [1.3, 2, "speed"]
-        },
-            "debuff" : 1,
-        "dot" : 0
-        },
-
-        "move3" : {
-        "damage" : 75,
-        "selfbuff" : {
-            "battle_focus" : [1.15, 5, "attack"],
-            "quickstep" : [1.2, 1, "speed"]
+            "debuff": {
+                "weaken": [0.8, 3, "attack"]
             },
-        "debuff" : 0.8,
-        "dot" : 0
+            "dot": 0
         },
 
-        "move4" : {
-        "damage" : 250,
-        "selfbuff" : {
-            "berserk" : [1.5, 1 , "attack"]
+        "move2": {
+            "damage": 50,
+            "selfbuff": {
+                "haste": [1.3, 2, "speed"]
             },
-        "debuff" : 1,
-        "dot" : 0
+            "debuff": {
+                "slow": [0.7, 2, "speed"]
+            },
+            "dot": 0
+        },
+
+        "move3": {
+            "damage": 75,
+            "selfbuff": {
+                "battle_focus": [1.15, 5, "attack"],
+                "quickstep": [1.2, 1, "speed"]
+            },
+            "debuff": {
+                "expose": [0.75, 2, "defence"]
+            },
+            "dot": 0
+        },
+
+        "move4": {
+            "damage": 250,
+            "selfbuff": {
+                "berserk": [1.5, 1, "attack"]
+            },
+            "debuff": {
+                "weaken": [0.6, 1, "attack"],
+                "expose": [0.8, 1, "defence"]
+            },
+            "dot": 0
         }
     }
 }
 
+
 enemydata = {
     "speed": 100,
     "health": 10000,
-    "attack" : 1000,
+    "attack": 1000,
     "defence": 1000,
 
     "moves": {
         "crushing_blow": {
             "damage": 180,
             "selfbuff": {},
-            "debuff": 1
+            "debuff": {
+                "weaken": [0.8, 2, "attack"]
+            },
+            "dot": 0
         },
 
         "war_cry": {
@@ -68,13 +77,19 @@ enemydata = {
             "selfbuff": {
                 "fury": [1.3, 3, "attack"]
             },
-            "debuff": 1
+            "debuff": {
+                "slow": [0.75, 2, "speed"]
+            },
+            "dot": 0
         },
 
         "crippling_hex": {
             "damage": 40,
             "selfbuff": {},
-            "debuff": 0.8
+            "debuff": {
+                "expose": [0.8, 3, "defence"]
+            },
+            "dot": 0
         },
 
         "frenzy": {
@@ -83,7 +98,10 @@ enemydata = {
                 "frenzy": [1.2, 2, "speed"],
                 "bloodlust": [1.15, 2, "attack"]
             },
-            "debuff": 1
+            "debuff": {
+                "expose": [0.85, 2, "defence"]
+            },
+            "dot": 0
         },
 
         "battle_shout": {
@@ -91,14 +109,17 @@ enemydata = {
             "selfbuff": {
                 "battle_hardened": [1.2, 4, "defence"]
             },
-            "debuff": 1
+            "debuff": {
+                "weaken": [0.7, 2, "attack"]
+            },
+            "dot": 0
         }
     }
 }
 
 def speed_sys(progress, status):
-    pav = progress["player"]["pdist"] / (playeradata["speed"]*status["multipliers"]["player"]["speed"])
-    eav = progress["enemy"]["edist"] / (enemydata["speed"]*status["multipliers"]["enemy"]["speed"])
+    pav = progress["player"]["pdist"] / (playeradata["speed"]*status["buff"]["multipliers"]["player"]["speed"])
+    eav = progress["enemy"]["edist"] / (enemydata["speed"]*status["buff"]["multipliers"]["enemy"]["speed"])
 
     if pav<eav:
         next_turn = "player"
@@ -108,24 +129,6 @@ def speed_sys(progress, status):
         next_turn = random.choice(["player", "enemy"])
 
     return next_turn
-
-def buff_calculations(next_turn, status):
-        for buff_type in status[next_turn]:
-            status["multipliers"][next_turn][buff_type] = 1
-            for buff_name in status[next_turn][buff_type]:
-                multiplier = status[next_turn][buff_type][buff_name][0]
-                status["multipliers"][next_turn][buff_type] *= multiplier
-
-def damage_calculation(next_turn, move, status):
-    if next_turn == "player":
-        return( move["damage"] * ((playeradata["attack"]) * (status["multipliers"][next_turn]["attack"])) / (((playeradata["attack"]) * (status["multipliers"][next_turn]["attack"])) + (enemydata["defence"]*status["multipliers"]["enemy"]["defence"])) )
-
-    elif next_turn == "enemy":
-        return( move["damage"] * ((enemydata["attack"]) * (status["multipliers"][next_turn]["attack"])) / (((enemydata["attack"]) * (status["multipliers"][next_turn]["attack"])) + (playeradata["defence"]*status["multipliers"]["player"]["defence"])) )  
-
-    else:
-        print("Some error occured")
-        return
 
 def buff_duration(move, next_turn, status):
     #Adding selfbuffs
@@ -137,17 +140,17 @@ def buff_duration(move, next_turn, status):
         duration = buff_data[1]
 
         if buff_data[-1] == "attack":
-            status[next_turn]["attack"][buff_name] = [multiplier, duration + 1]  # +1 cus in next loop it removes 1 turn from the buff
+            status["buff"][next_turn]["attack"][buff_name] = [multiplier, duration + 1]  # +1 cus in next loop it removes 1 turn from the buff
         elif buff_data[-1] == "speed":
-            status[next_turn]["speed"][buff_name] = [multiplier, duration + 1] 
+            status["buff"][next_turn]["speed"][buff_name] = [multiplier, duration + 1] 
         elif buff_data[-1] == "defence" :
-            status[next_turn]["defence"][buff_name] = [multiplier, duration + 1] 
+            status["buff"][next_turn]["defence"][buff_name] = [multiplier, duration + 1] 
 
     #Code status decreasing here
     expired = []
-    for buff_type in status[next_turn]:
-        for buff_name in status[next_turn][buff_type]:
-            buff_data = status[next_turn][buff_type][buff_name]
+    for buff_type in status["buff"][next_turn]:
+        for buff_name in status["buff"][next_turn][buff_type]:
+            buff_data = status["buff"][next_turn][buff_type][buff_name]
             if buff_data[-1]>0:
                 buff_data[-1] -= 1
             else:
@@ -155,10 +158,66 @@ def buff_duration(move, next_turn, status):
 
     #Delete seperately cus deleting together was annyoing
     for to_delete in expired:
-        del status[next_turn][to_delete[0]][to_delete[1]]
+        del status["buff"][next_turn][to_delete[0]][to_delete[1]]
+
+
+def buff_calculations(next_turn, status):
+        for buff_type in status["buff"][next_turn]:
+            status["buff"]["multipliers"][next_turn][buff_type] = 1
+            for buff_name in status["buff"][next_turn][buff_type]:
+                multiplier = status["buff"][next_turn][buff_type][buff_name][0]
+                status["buff"]["multipliers"][next_turn][buff_type] *= multiplier
+
+def debuff_duration(move, opponent, status):
+    #Adding debuffs
+    for i in move["debuff"]:
+        buff_data = move["debuff"][i]
+        buff_name = i
+
+        multiplier = buff_data[0]
+        duration = buff_data[1]
+
+        if buff_data[-1] == "attack":
+            status["debuff"][opponent]["attack"][buff_name] = [multiplier, duration + 1]  # +1 cus in next loop it removes 1 turn from the buff
+        elif buff_data[-1] == "speed":
+            status["debuff"][opponent]["speed"][buff_name] = [multiplier, duration + 1] 
+        elif buff_data[-1] == "defence" :
+            status["debuff"][opponent]["defence"][buff_name] = [multiplier, duration + 1] 
+
+    #Code status decreasing here
+    expired = []
+    for buff_type in status["debuff"][opponent]:
+        for buff_name in status["debuff"][opponent][buff_type]:
+            buff_data = status["debuff"][opponent][buff_type][buff_name]
+            if buff_data[-1]>0:
+                buff_data[-1] -= 1
+            else:
+                expired.append([buff_type, buff_name])
+
+    #Delete seperately cus deleting together was annyoing
+    for to_delete in expired:
+        del status["debuff"][opponent][to_delete[0]][to_delete[1]]  
+
+def debuff_calculations():
+#Similar to buff calculations
+
+#Recode using debuff
+def damage_calculation(next_turn, move, status):
+    if next_turn == "player":
+        return( move["damage"] * ((playeradata["attack"]) * (status["multipliers"][next_turn]["attack"])) / (((playeradata["attack"]) * (status["multipliers"][next_turn]["attack"])) + (enemydata["defence"]*status["multipliers"]["enemy"]["defence"])) )
+
+    elif next_turn == "enemy":
+        return( move["damage"] * ((enemydata["attack"]) * (status["multipliers"][next_turn]["attack"])) / (((enemydata["attack"]) * (status["multipliers"][next_turn]["attack"])) + (playeradata["defence"]*status["multipliers"]["player"]["defence"])) )  
+
+    else:
+        print("Some error occured")
+        return
+
 
 def turn(next_turn, progress, status):
     if next_turn == "player":
+        opponent = "enemy"
+
         print("Moves available : ", playeradata['moves']) # Could print htis better 
         move_select = str(input("Enter name of move selected : "))
 
@@ -172,6 +231,8 @@ def turn(next_turn, progress, status):
         dmg = damage_calculation(next_turn, move, status)
 
     elif next_turn == "enemy":
+        opponent = "player"
+
         echoice = random.choice(list(enemydata["moves"].keys()))
         move = enemydata["moves"][echoice]
 
@@ -213,30 +274,59 @@ def fight():
 
     status = {
         #For actual game calcs
-        "multipliers" : {
-            "player" : {
-                "attack" : 1,
-                "speed" : 1,
-                "defence" : 1
-            },
+        "buff" : {
+                "multipliers" : {
+                "player" : {
+                    "attack" : 1,
+                    "speed" : 1,
+                    "defence" : 1
+                },
 
+                "enemy" : {
+                    "attack" : 1,
+                    "speed" : 1,
+                    "defence" : 1
+                }
+            },
+            #format = buff name, multiplier, duration in list
+            "player" : {
+                "attack" : {},
+                "speed" : {},
+                "defence" : {},
+            },
             "enemy" : {
-                "attack" : 1,
-                "speed" : 1,
-                "defence" : 1
+                "attack" : {},
+                "speed" : {},
+                "defence" : {},
             }
         },
-        #format = buff name, multiplier, duration in list
-        "player" : {
-            "attack" : {},
-            "speed" : {},
-            "defence" : {},
-        },
-        "enemy" : {
-            "attack" : {},
-            "speed" : {},
-            "defence" : {},
-        }
+
+        "debuff" : {
+                "multipliers" : {
+                "player" : {
+                    "attack" : 1,
+                    "speed" : 1,
+                    "defence" : 1
+                },
+
+                "enemy" : {
+                    "attack" : 1,
+                    "speed" : 1,
+                    "defence" : 1
+                }
+            },
+            #format = buff name, multiplier, duration in list
+            "player" : {
+                "attack" : {},
+                "speed" : {},
+                "defence" : {},
+            },
+            "enemy" : {
+                "attack" : {},
+                "speed" : {},
+                "defence" : {},
+            }      
+        } 
     }
 
     while True:
