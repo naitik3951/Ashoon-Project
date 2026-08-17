@@ -5,7 +5,6 @@ import json
 playerdata = {} 
 enemydata = {}
 
-
 def load_data():
     global playerdata, enemydata
 
@@ -20,14 +19,26 @@ def load_data():
 
     with open("game_data/enemy_data.json", "r") as enemy_data_file:
         enemies  = json.load(enemy_data_file)
-        encounter = "orc" #Set ourselves for now as encouinter happening is up to pygame ppl
+        encounter = "void_tyrant" #Set ourselves for now as encouinter happening is up to pygame ppl
         enemydata = enemies[encounter]
 
     return playerdata, enemydata
 
 def speed_sys(progress, status):
-    pav = progress["player"]["pdist"] / (playerdata["stats"]["speed"]*status["buff"]["multipliers"]["player"]["speed"])
-    eav = progress["enemy"]["edist"] / (enemydata["speed"]*status["buff"]["multipliers"]["enemy"]["speed"])
+    pav = (progress["player"]["pdist"]
+           / ((playerdata["stats"]["speed"] + playerdata["weapon"]["stats"]["speed"])
+                *status["buff"]["multipliers"]["player"]["speed"]
+                *status["debuff"]["multipliers"]["player"]["speed"]
+                *playerdata["weapon"]["multipliers"]["speed"]
+                )
+           )
+
+    eav = (progress["enemy"]["edist"]
+            /(enemydata["speed"]
+                *status["buff"]["multipliers"]["enemy"]["speed"]
+                *status["debuff"]["multipliers"]["enemy"]["speed"]    
+                )
+           )
 
     if pav<eav:
         next_turn = "player"
@@ -145,7 +156,26 @@ def damage_calculation(next_turn, move, status):
         return(base_dmg * attack_multiplier * defence_multiplier * crit_multiplier)
 
     elif next_turn == "enemy":
-        return( move["damage"] * ((enemydata["attack"]) * (status["buff"]["multipliers"][next_turn]["attack"])) / (((enemydata["attack"]) * (status["buff"]["multipliers"][next_turn]["attack"])) + (playerdata["stats"]["defence"]*status["buff"]["multipliers"]["player"]["defence"])) )  
+        base_dmg = move["damage"]
+
+        attack_multiplier = (
+            enemydata["attack"]
+            * status["buff"]["multipliers"]["enemy"]["attack"]
+            * status["debuff"]["multipliers"]["enemy"]["attack"]
+        )
+
+        defence_multiplier = (
+            10000
+            / (
+                (playerdata["stats"]["defence"] + playerdata["weapon"]["stats"]["defence"])
+                *status["buff"]["multipliers"]["player"]["defence"]
+                *status["debuff"]["multipliers"]["player"]["defence"]
+                *playerdata["weapon"]["multipliers"]["defence"]
+                + 10000
+            )
+        )
+
+        return(base_dmg * attack_multiplier *defence_multiplier)
 
     else:
         print("Some error occured")
@@ -184,19 +214,45 @@ def turn(next_turn, progress, status):
     
     if next_turn == "player":
         print("You moved!")
+        print("Damage dealt : ", dmg)
         print()
         progress["enemy"]["ehealth"] -= dmg
-        av = 10000/playerdata["stats"]["speed"] #Temp fix, diff function later where buffs will also be calced
+
+        av_spent = (10000
+              /((playerdata["stats"]["speed"] + playerdata["weapon"]["stats"]["speed"])
+                *status["buff"]["multipliers"]["player"]["speed"]
+                *status["debuff"]["multipliers"]["player"]["speed"]
+                *playerdata["weapon"]["multipliers"]["speed"]
+                )
+              )
+        
         progress["player"]["pdist"] = 10000
-        progress["enemy"]["edist"] = 10000 - enemydata["speed"]*av
+
+        progress["enemy"]["edist"] -= (enemydata["speed"]
+                                       *status["buff"]["multipliers"]["enemy"]["speed"]
+                                       *status["debuff"]["multipliers"]["enemy"]["speed"]                              
+                                      )*av_spent
 
     elif next_turn == "enemy":
         print("Enemy moved!")
+        print("Damge dealt : ", dmg)
         print()
+
         progress["player"]["phealth"] -= dmg
-        av = 10000/enemydata["speed"]#Temp fix, diff function lated where buffs also calced
+        av_spent = (10000
+                    /(
+                        enemydata["speed"]
+                        *status["buff"]["multipliers"]["enemy"]["speed"] 
+                        *status["debuff"]["multipliers"]["enemy"]["speed"]) 
+                    )
+
         progress["enemy"]["edist"] = 10000
-        progress["player"]["pdist"] -= playerdata["stats"]["speed"]*av
+        
+        progress["player"]["pdist"] -= ((playerdata["stats"]["speed"] + playerdata["weapon"]["stats"]["speed"])
+                                        *status["buff"]["multipliers"]["player"]["speed"]
+                                        *status["debuff"]["multipliers"]["player"]["speed"]
+                                        *playerdata["weapon"]["multipliers"]["speed"]
+                                         )*av_spent
    
 def fight():
     load_data()
@@ -204,7 +260,7 @@ def fight():
     progress = {
         "player" : {
             "pdist" : 10000,
-            "phealth" : playerdata["stats"]["health"]
+            "phealth" : (playerdata["stats"]["health"] + playerdata["weapon"]["stats"]["health"])*playerdata["weapon"]["multipliers"]["health"]
         },
         "enemy" : {
             "edist" : 10000,
@@ -278,6 +334,7 @@ def fight():
         next_turn = speed_sys(progress,status)
 
         turn(next_turn, progress, status)
+        
 
         if progress["player"]["phealth"] <= 0 :
             print("You died")
@@ -289,7 +346,5 @@ def fight():
             print("Your health : ", progress["player"]["phealth"])
             print("Enemy health : ", progress["enemy"]["ehealth"]) 
         print()
-
-        print(status) #To see if its working
 
 fight() 
