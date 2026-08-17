@@ -150,10 +150,12 @@ def damage_calculation(next_turn, move, status):
         #Crit dmg part
         if random.random() < (playerdata["weapon"]["crit"]["crate"]) / 100:
             crit_multiplier = 1 + playerdata["weapon"]["crit"]["cdmg"] / 100 # 250 cdmg = 1 + 2.5 = 3.5, 50 cdmg = 1 + .5 = 1.5
+            did_crit = True
         else:
             crit_multiplier = 1
+            did_crit = False
 
-        return(base_dmg * attack_multiplier * defence_multiplier * crit_multiplier)
+        return(base_dmg * attack_multiplier * defence_multiplier * crit_multiplier), did_crit
 
     elif next_turn == "enemy":
         base_dmg = move["damage"]
@@ -185,7 +187,7 @@ def turn(next_turn, progress, status):
     if next_turn == "player":
         opponent = "enemy"
 
-        print("Moves available : ", playerdata['moves']) # Could print htis better 
+        print("Moves available : ", playerdata['moves'].keys()) # Could print htis better 
         move_select = str(input("Enter name of move selected : "))
 
         #Correct move entered
@@ -195,7 +197,7 @@ def turn(next_turn, progress, status):
                     
         move = playerdata['moves'][move_select]
 
-        dmg = damage_calculation(next_turn, move, status)
+        dmg, did_crit = damage_calculation(next_turn, move, status)
 
     elif next_turn == "enemy":
         opponent = "player"
@@ -214,8 +216,9 @@ def turn(next_turn, progress, status):
     
     if next_turn == "player":
         print("You moved!")
+        if did_crit:
+            print("Crit Hit!")
         print("Damage dealt : ", dmg)
-        print()
         progress["enemy"]["ehealth"] -= dmg
 
         av_spent = (10000
@@ -236,7 +239,6 @@ def turn(next_turn, progress, status):
     elif next_turn == "enemy":
         print("Enemy moved!")
         print("Damge dealt : ", dmg)
-        print()
 
         progress["player"]["phealth"] -= dmg
         av_spent = (10000
@@ -247,7 +249,7 @@ def turn(next_turn, progress, status):
                     )
 
         progress["enemy"]["edist"] = 10000
-        
+
         progress["player"]["pdist"] -= ((playerdata["stats"]["speed"] + playerdata["weapon"]["stats"]["speed"])
                                         *status["buff"]["multipliers"]["player"]["speed"]
                                         *status["debuff"]["multipliers"]["player"]["speed"]
