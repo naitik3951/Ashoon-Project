@@ -1,76 +1,29 @@
 import random
 import json
 
+#To set these 2 as global variables
+playerdata = {} 
+enemydata = {}
 
-with open("game_data/save_file.json", "r") as save_data, open("game_data/weapon_data.json", "r") as weapon_data: #../ tells python to go up 1 folder
-    data = json.load(save_data)
-    weapons = json.load(weapon_data)
-    playerdata = {
-        "stats" : data["stats"],
-        "moves" : data["moves"],
-        "weapon" : weapons[data["weapon"]]
-    }
 
-enemydata = {
-    "speed": 100,
-    "health": 100,
-    "attack": 100,
-    "defence": 100,
+def load_data():
+    global playerdata, enemydata
 
-    "moves": {
-        "crushing_blow": {
-            "damage": 5,
-            "selfbuff": {},
-            "debuff": {
-                "weaken": [0.8, 2, "attack"]
-            },
-            "dot": 0
-        },
-
-        "war_cry": {
-            "damage": 3,
-            "selfbuff": {
-                "fury": [1.3, 3, "attack"]
-            },
-            "debuff": {
-                "slow": [0.75, 2, "speed"]
-            },
-            "dot": 0
-        },
-
-        "crippling_hex": {
-            "damage": 2,
-            "selfbuff": {},
-            "debuff": {
-                "expose": [0.8, 3, "defence"]
-            },
-            "dot": 0
-        },
-
-        "frenzy": {
-            "damage": 10,
-            "selfbuff": {
-                "frenzy": [1.2, 2, "speed"],
-                "bloodlust": [1.15, 2, "attack"]
-            },
-            "debuff": {
-                "expose": [0.85, 2, "defence"]
-            },
-            "dot": 0
-        },
-
-        "battle_shout": {
-            "damage": 7,
-            "selfbuff": {
-                "battle_hardened": [1.2, 4, "defence"]
-            },
-            "debuff": {
-                "weaken": [0.7, 2, "attack"]
-            },
-            "dot": 0
+    with open("game_data/save_file.json", "r") as save_data, open("game_data/weapon_data.json", "r") as weapon_data: #../ tells python to go up 1 folder
+        data = json.load(save_data)
+        weapons = json.load(weapon_data)
+        playerdata = {
+            "stats" : data["stats"],
+            "moves" : data["moves"],
+            "weapon" : weapons[data["weapon"]]
         }
-    }
-}
+
+    with open("game_data/enemy_data.json", "r") as enemy_data_file:
+        enemies  = json.load(enemy_data_file)
+        encounter = "orc" #Set ourselves for now as encouinter happening is up to pygame ppl
+        enemydata = enemies[encounter]
+
+    return playerdata, enemydata
 
 def speed_sys(progress, status):
     pav = progress["player"]["pdist"] / (playerdata["stats"]["speed"]*status["buff"]["multipliers"]["player"]["speed"])
@@ -246,6 +199,8 @@ def turn(next_turn, progress, status):
         progress["player"]["pdist"] -= playerdata["stats"]["speed"]*av
    
 def fight():
+    load_data()
+
     progress = {
         "player" : {
             "pdist" : 10000,
