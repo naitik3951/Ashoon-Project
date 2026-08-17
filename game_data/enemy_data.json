@@ -378,7 +378,7 @@
     },
 
     "void_tyrant": {
-        "health": 3000,
+        "health": 1000000,
         "attack": 900,
         "defence": 750,
         "speed": 140,
