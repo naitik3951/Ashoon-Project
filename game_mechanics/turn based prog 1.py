@@ -1,14 +1,15 @@
 import random
 import json
 
-with open("save_file.json", "r") as f:
-    data = json.load(f)
+
+with open("game_data/save_file.json", "r") as save_data, open("game_data/weapon_data.json", "r") as weapon_data: #../ tells python to go up 1 folder
+    data = json.load(save_data)
+    weapons = json.load(weapon_data)
     playerdata = {
         "stats" : data["stats"],
         "moves" : data["moves"],
-        "weapon" : data["weapon"]
+        "weapon" : weapons[data["weapon"]]
     }
-
 
 enemydata = {
     "speed": 100,
@@ -162,12 +163,33 @@ def debuff_calculations(opponent, status):
 #Recode using debuff
 def damage_calculation(next_turn, move, status):
     if next_turn == "player":
-
         #Expeidiont 33 type dmg fomrula here
+        base_dmg = move["damage"]
 
+        attack_multiplier = (
+        (playerdata["stats"]["attack"] + playerdata["weapon"]["stats"]["attack"]) 
+        * (status["buff"]["multipliers"]["player"]["attack"]) 
+        * (status["debuff"]["multipliers"]["player"]["attack"])
+        * playerdata["weapon"]["multipliers"]["attack"]
+        )
 
+        defence_multiplier = (
+        10000
+        / (
+            (enemydata["defence"])
+            *status["buff"]["multipliers"]["enemy"]["defence"]
+            *status["debuff"]["multipliers"]["enemy"]["defence"]
+            +10000
+            )
+        )
 
-        return( move["damage"] * ((playerdata["stats"]["attack"]) * (status["buff"]["multipliers"][next_turn]["attack"])) / (((playerdata["stats"]["attack"]) * (status["buff"]["multipliers"][next_turn]["attack"])) + (enemydata["defence"]*status["buff"]["multipliers"]["enemy"]["defence"])) )
+        #Crit dmg part
+        if random.random() < (playerdata["weapon"]["crit"]["crate"]) / 100:
+            crit_multiplier = 1 + playerdata["weapon"]["crit"]["cdmg"] / 100 # 250 cdmg = 1 + 2.5 = 3.5, 50 cdmg = 1 + .5 = 1.5
+        else:
+            crit_multiplier = 1
+
+        return(base_dmg * attack_multiplier * defence_multiplier * crit_multiplier)
 
     elif next_turn == "enemy":
         return( move["damage"] * ((enemydata["attack"]) * (status["buff"]["multipliers"][next_turn]["attack"])) / (((enemydata["attack"]) * (status["buff"]["multipliers"][next_turn]["attack"])) + (playerdata["stats"]["defence"]*status["buff"]["multipliers"]["player"]["defence"])) )  
