@@ -1,1 +1,4 @@
+just to store some data abt game
 
+dmg formula:
+DMG\ =\ \left(dmg_{base}\cdot\frac{k_{level}}{k_{scaling}}\right)\cdot\left(\left[atck_{base}+atck_{weapon}\right]\cdot atck_{buff}\cdot atck_{debuff}\right)\cdot\left(\frac{k_{scaling}\cdot k_{level}}{\left[def_{base}\cdot def_{buff}\cdot def_{debuff}\right]+k_{scaling}\cdot k_{level}}\right)\cdot\left(1+cdmg_{if\ crit}\right)
