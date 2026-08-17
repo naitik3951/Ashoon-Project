@@ -1,0 +1,74 @@
+{
+    "progress": {
+        "stage_level": 1,
+        "player_level": 1,
+        "enemies_defeated": {}
+    },
+    "stats": {
+        "health": 1000000,
+        "attack": 100,
+        "defence": 100,
+        "speed": 135
+    },
+    "moves": {
+        "celestial_annihilation": {
+            "damage": 180,
+            "selfbuff": {
+                "divine_power": [
+                    1.4,
+                    3,
+                    "attack"
+                ]
+            },
+            "debuff": {},
+            "dot": {}
+        },
+        "voidbreaker": {
+            "damage": 140,
+            "selfbuff": {},
+            "debuff": {
+                "expose": [
+                    0.7,
+                    3,
+                    "defence"
+                ],
+                "weaken": [
+                    0.8,
+                    2,
+                    "attack"
+                ]
+            },
+            "dot": {}
+        },
+        "astral_overdrive": {
+            "damage": 110,
+            "selfbuff": {
+                "overdrive": [
+                    1.35,
+                    3,
+                    "speed"
+                ],
+                "battle_fury": [
+                    1.25,
+                    2,
+                    "attack"
+                ]
+            },
+            "debuff": {},
+            "dot": {}
+        },
+        "world_end": {
+            "damage": 300,
+            "selfbuff": {},
+            "debuff": {
+                "expose": [
+                    0.75,
+                    3,
+                    "defence"
+                ]
+            },
+            "dot": {}
+        }
+    },
+    "weapon": "celestial blade"
+}
