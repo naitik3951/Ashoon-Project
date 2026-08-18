@@ -13,17 +13,20 @@ x = 700
 y = 360
 width = 20
 height = 60
-vel = 10 #Velocity
+vel = 5 #Velocity
 
+#Variables for jumping
 isJump = False #For jumping
-gravity = 10 #-Because vector, and - in physics is + here cus opposiute
+gravity = 2400 #-Because vector, and - in physics is + here cus opposiute
 airTime = 0.5 
-jumpVelocity = -20
+jumpVelocity = -600
 
-#Main loop
+clock = pygame.time.Clock() 
+
+#Main movement loop
 run = True
 while run:
-    pygame.time.delay(100) #So not too fast, 100ms
+    dt = clock.tick(60)/1000  #/1000 to convert ms to s
 
     #Event = what we do
     for event in pygame.event.get(): #To get events from user
@@ -33,7 +36,7 @@ while run:
     #Checking event of movement in diff loop so that if we hold key it continues to move, if in above loop, it will only move once per press
     keys = pygame.key.get_pressed() #List of keys pressed
     #As we go left, x increase, as we go down, y increases
-
+    
     if keys[pygame.K_a] and x > vel : #x > vel such that x - vel>0 so that we can never move off screen
         x -= vel
     if keys[pygame.K_d] and x < screenWidth - width - vel: #screenWidth so that not off screen and -width cus pygame has char position at top left, and we want it to look like it on screen, - vel for same reason as top
@@ -45,15 +48,15 @@ while run:
             y += vel
         if keys[pygame.K_SPACE]:
             isJump = True
+            current_airTime = 0
+            startY= y
     else:
-        current_airTime = 0
-        startY = 0
+        current_airTime += dt
         s = (jumpVelocity * current_airTime) + 0.5 * gravity *  (current_airTime**2)
-        current_airTime += 0.1
         y = startY + s
         if current_airTime >= airTime:
             isJump = False
-
+            current_airTime = 0
 
     #Drawing character
     win.fill((0,0,0)) #Filling colour every loop so rectangle doesnt copy
